@@ -9,6 +9,7 @@ import { resolveFiles } from './discovery.js'
 import { discoverTools, verifyTools, validateTools, upsertToolStatus, registerToolsFromDecisions, planServedTools, getCommitSha } from './mcpToolCapability.js'
 import type { ToolDef } from './toolRegistry.js'
 import { registerFixedTools, type SelectedEnv } from './mcpServing.js'
+import { createMcpSessionStore } from './mcpSessions.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
@@ -1620,6 +1621,9 @@ mcpCmd
     if (opts.http) {
       const port = Number(opts.port)
       const host = opts.host
+      // Per-client — runtimeVars/selectedEnv above stay the stdio path's
+      // (one client per process); over HTTP every client gets its own.
+      const sessions = createMcpSessionStore(() => ({ runtimeVars: {} as Record<string, any>, selectedEnv: { vars: {} } as SelectedEnv }))
 
       // A fresh McpServer + transport per HTTP request — this is how the
       // SDK's own stateless example (examples/server/simpleStatelessStreamableHttp.js)
@@ -1628,9 +1632,10 @@ mcpCmd
       // wiring against the already-computed `decisions`, no re-verification.
       const httpServer = createHttpServer(async (req, res) => {
         try {
+          const session = sessions.forRequest(req, res)
           const requestServer = new McpServer({ name: 'voiden-runner', version: '1.0.0' })
-          registerFixedTools(requestServer, projectRoot, runtimeVars, activePlugins, selectedEnv)
-          registerToolsFromDecisions(requestServer, decisions, env, runtimeVars, activePlugins, commitSha, projectRoot)
+          registerFixedTools(requestServer, projectRoot, session.runtimeVars, activePlugins, session.selectedEnv)
+          registerToolsFromDecisions(requestServer, decisions, env, session.runtimeVars, activePlugins, commitSha, projectRoot)
           const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
           await requestServer.connect(transport)
           res.on('close', () => {

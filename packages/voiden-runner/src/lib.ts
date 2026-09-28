@@ -27,6 +27,7 @@ export type { ToolState, ToolVerifyResult, ToolStatus, ToolValidationIssue, Disc
 export type { ToolDef, ToolExtraction, ToolParamDef, ToolVerifyEntry, ToolVerifyRole, ToolVerifyMode, ToolOnFailure, ToolAnnotations, ToolExtractFn } from './toolRegistry.js'
 
 export { buildMcpServer, registerFixedTools } from './mcpServing.js'
+export { createMcpSessionStore, type McpSessionStore } from './mcpSessions.js'
 export type { BuildMcpServerOptions, SelectedEnv } from './mcpServing.js'
 
 // Opt-in — NOT part of registerFixedTools/buildMcpServer's shared tool set,

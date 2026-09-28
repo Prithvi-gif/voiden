@@ -657,6 +657,17 @@ resolves from the environment the same way any other Voiden request's env vars d
 params table never involved. Every declared *param*, by contrast, is always agent-facing — see
 ["How a param actually resolves"](#how-a-param-actually-resolves) above.
 
+**Can one tool use a value from another tool's response?**
+Yes — the same runtime variables chaining uses in the app. Tool A's request captures a value with a
+runtime-variables block (e.g. `order_id` = `{{$res.body.id}}`, or `voiden.variables.set('order_id', …)`
+in a script); tool B's request uses `{{process.order_id}}`. The agent just has to call A before B —
+say so in B's description. If B is called first, its error names the tool that captures the missing
+value ("call `create_order` first"). Captured values live on the server, per agent session: with
+stdio each agent has its own server process; with `--http` each client gets its own session
+(`Mcp-Session-Id`), dropped when it disconnects or after an hour idle. They are never shared between
+clients, and never loaded from the app's saved `.process.env.json`. Verification runs each tool on
+its own, so a chained tool's verify row should point at a section that doesn't depend on a prior call.
+
 **Does where I host `voiden-mcp` matter to Voiden?**
 No — it's a plain npm package with no Voiden-specific hosting logic in it, the same as any other
 CLI tool (`http-server`, say). `voiden-mcp <path> --http` behaves identically on a laptop, a VM,

@@ -39,6 +39,7 @@ import {
   planServedTools,
   registerToolsFromDecisions,
   getCommitSha,
+  createMcpSessionStore,
   type ServeDecision,
   type VerifyEntryCache,
 } from '@voiden/runner'
@@ -489,7 +490,12 @@ export async function runPublish(projectRoot: string, rawOpts: PublishOpts): Pro
     console.error("  ⚠  Running inside a CI job with no --tunnel — this port won't be reachable from outside this job. Pass --tunnel for a public URL for this job's lifetime, or deploy to a persistent host for an always-on server.")
   }
 
+  // stdio: one client per process, so one map is that client's session.
+  // --http: every client gets its own (see createMcpSessionStore) — one
+  // shared map leaked one client's captured {{process.*}} values into
+  // every other client's calls.
   const runtimeVars: Record<string, any> = {}
+  const httpSessions = createMcpSessionStore<Record<string, any>>(() => ({}))
   const commitSha = getCommitSha(projectRoot)
 
   let httpServer: HttpServer | undefined
@@ -503,6 +509,7 @@ export async function runPublish(projectRoot: string, rawOpts: PublishOpts): Pro
     shuttingDown = true
     console.error('  Shutting down…')
     if (schedulerHandle) clearInterval(schedulerHandle)
+    httpSessions.close()
     if (tunnelProcess && !tunnelProcess.killed) tunnelProcess.kill()
     if (stdioServer) await stdioServer.close().catch(() => {})
     if (httpServer) {
@@ -532,8 +539,9 @@ export async function runPublish(projectRoot: string, rawOpts: PublishOpts): Pro
       // example). Cheap: registration reads the current `decisions`
       // closure value, so a scheduler tick updating it takes effect on
       // the very next request with no hot-swap machinery needed.
+      const sessionVars = httpSessions.forRequest(req, res)
       const requestServer = new McpServer({ name: 'voiden-mcp', version: '0.1.0' })
-      registerToolsFromDecisions(requestServer, decisions, baseEnv, runtimeVars, activePlugins, commitSha, projectRoot, mode)
+      registerToolsFromDecisions(requestServer, decisions, baseEnv, sessionVars, activePlugins, commitSha, projectRoot, mode)
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
       await requestServer.connect(transport)
       res.on('close', () => {

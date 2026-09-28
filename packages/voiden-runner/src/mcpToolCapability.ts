@@ -52,7 +52,7 @@ export interface DiscoverToolsOptions {
 
 export interface ToolValidationIssue {
   tool: ToolDef
-  check: 'unbound-param' | 'unresolved-placeholder' | 'missing-section' | 'duplicate-name' | 'readonly-mutating'
+  check: 'unbound-param' | 'unresolved-env-variable' | 'missing-section' | 'duplicate-name' | 'readonly-mutating'
   message: string
 }
 
