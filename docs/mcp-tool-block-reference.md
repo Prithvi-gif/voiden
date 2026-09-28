@@ -63,10 +63,15 @@ resolved completely independently of this table.
 | `description` | string | — | empty | Shown to the agent as this argument's description — what it should pass here, and why. |
 | `testValue` (Test value) | string | — | empty | What **verification** substitutes for this param, since there's no live agent call happening then — never shown to or sent by the agent itself, purely a stand-in for proving the request works. A required param with no `testValue` can't be exercised by live verification: the request fails on the unresolved `{{token}}`, correctly, rather than silently skipping the check. |
 
-A `{{token}}` that appears in the bound request but has **no** param row declaring it as its
-`binds` is the reverse problem — `unresolved-placeholder` — it can only ever resolve if it
-happens to be a real environment variable outside Voiden's knowledge, which is almost never
-intended.
+A `{{token}}` that appears in the bound request but has **no** param row is how an environment
+variable (`{{base_url}}`, `{{API_KEY}}`) is written — the agent never sees it, and the server fills
+it from its own environment. The server checks this at startup: if it isn't defined there, the
+tool is excluded with `unresolved-env-variable` (see below). Runtime variables
+(`{{process.token}}`) and dynamic values (`{{$faker.string.uuid()}}`) aren't part of that check —
+they only exist once the request runs. The hosted server starts with no runtime variables (it
+doesn't load the app's saved ones), so a `{{process.*}}` value resolves only if an earlier request
+in the same server session captured it; for a secret like an API token, use an environment variable
+instead.
 
 ---
 
@@ -103,7 +108,7 @@ what's served, with the reason printed — nothing fails silently:
 | Check | Fires when |
 |---|---|
 | `unbound-param` | A param's `binds` names a `{{token}}` that doesn't appear anywhere in the request it decorates. |
-| `unresolved-placeholder` | The request contains a `{{token}}` with no param row declaring it via `binds`. |
+| `unresolved-env-variable` | The request uses a `{{token}}` with no param row that isn't defined in the server's environment — from `--profile [name] --environment <env>`, `--env <file>`, the server's process env (e.g. `.mcp.json`'s `"env"` block), or, with none of those, the project's env files when they define exactly one environment. `{{process.*}}` and `{{$...}}` tokens are skipped. |
 | `missing-section` | A `toolverifies` row's `sectionLabel` doesn't match any real section in its target file. |
 | `dangling-request-reference` | The tool is bound (`requestSectionLabel` set) to a file/section that doesn't actually exist — including a `requestFilePath` that can't be read at all (missing file, or an absolute path from a different machine). |
 | `duplicate-name` | Two or more tools anywhere in the project share the same `name` — every one of them is excluded, not just the second. |
