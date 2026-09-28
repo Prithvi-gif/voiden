@@ -21,7 +21,7 @@ export type { HeadlessEditor, RequestBuildHandler, ResponseProcessHandler } from
 export { RequestOrchestrator, requestOrchestrator } from './orchestrator.js'
 
 export type { DeclaredBlockVersion, BlockVersionStatus, InstalledPluginInfo } from './blockVersioning.js'
-export { classifyBlockVersion } from './blockVersioning.js'
+export { classifyBlockVersion, blockVersionMismatchKind } from './blockVersioning.js'
 
 // .void file parsing — shared by @voiden/runner (execution) and the Voiden
 // app (validating externally-written files), so it lives here rather than

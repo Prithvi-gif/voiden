@@ -3,6 +3,20 @@
 All notable changes to `@voiden/runner` are documented here. This package is
 versioned and released independently of the Voiden desktop app.
 
+## v2.3.0 - 2026-09-28
+
+### Fixed
+- A block saved with an older plugin version (e.g. `voiden-mcp-tool` 0.1.4) no longer fails with
+  "requires v0.1.4, but v0.1.5 is installed". A newer plugin within the same compatibility range
+  (same major; for 0.x, same minor) now runs it; only an older plugin, or a newer incompatible one,
+  is refused, with a message saying which.
+
+### Changed
+- `mcp serve --http`: each connected client gets its own `{{process.*}}` runtime variables and
+  `select_environment` choice, instead of every client sharing one set.
+- Voiden's MCP client (`@voiden/executors` 0.1.12) reuses the server's session across operations,
+  so values one tool captures are available to the next.
+
 ## v2.3.0-beta.20 - 2026-09-21
 
 ### Fixed

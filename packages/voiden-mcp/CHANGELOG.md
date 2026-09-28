@@ -3,6 +3,17 @@
 All notable changes to `@voiden/mcp` are documented here. This package is
 versioned and released independently of the Voiden desktop app.
 
+## v0.0.19 - 2026-09-28
+
+### Fixed
+- Calling a tool whose `.void` file was saved with an older plugin version (e.g. `voiden-mcp-tool`
+  0.1.4 while 0.1.5 is installed) no longer fails with a version-mismatch error; a newer compatible
+  plugin runs it.
+
+### Changed
+- `--http`: each connected client gets its own `{{process.*}}` runtime variables, so one tool can
+  capture a value for the next without it leaking to other clients.
+
 ## v0.0.18 - 2026-09-21
 
 ### Fixed

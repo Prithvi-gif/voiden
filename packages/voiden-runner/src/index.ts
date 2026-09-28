@@ -466,7 +466,7 @@ function printProjectStatus(issues: ProjectRequirementIssue[]): void {
       issue.status === 'not-installed' ? 'not installed'
       : issue.status === 'disabled' ? 'installed but disabled'
       : `v${issue.installedVersion} installed`
-    console.log(chalk.gray(`     ${chalk.bold(issue.pluginId.padEnd(24))} requires v${issue.requiredVersion} — ${have}`))
+    console.log(chalk.gray(`     ${chalk.bold(issue.pluginId.padEnd(24))} requires v${issue.requiredVersion} or a newer compatible version — ${have}`))
     console.log(chalk.gray(`       used in: ${issue.files.join(', ')}`))
   }
   console.log(chalk.gray(`     Run: voiden-runner plugin install <name>@<version>`))
