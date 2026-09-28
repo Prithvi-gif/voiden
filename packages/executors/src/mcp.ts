@@ -68,13 +68,38 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   ])
 }
 
+/** Mcp-Session-Id the server assigned, per server URL + credentials — reused
+ *  so consecutive operations share one session, like an agent's client does.
+ *  A server that keeps per-session state (e.g. voiden-mcp's {{process.*}}
+ *  runtime variables, captured by one tool and used by the next) otherwise
+ *  sees every block run as a brand-new client. In-memory only: lives as long
+ *  as this process. */
+const sessionIds = new Map<string, string>()
+
+/** A server that doesn't know the session anymore (restarted, expired)
+ *  answers 404 — per the MCP spec, the client then starts a new one. */
+function isUnknownSessionError(err: any): boolean {
+  return err?.code === 404
+}
+
 /**
- * Runs one MCP operation against a Streamable-HTTP server: connect (which performs
- * the initialize handshake internally), make the one call the block asked for, close.
- * Every call is a fresh connection — no session is kept alive across invocations.
+ * Runs one MCP operation against a Streamable-HTTP server: connect, make the
+ * one call the block asked for, close. The connection is per call, but the
+ * server's session is not: the first call performs the initialize handshake
+ * and the session id it gets back is reused (no re-initialize) by every later
+ * call to the same server with the same credentials.
  */
 export async function executeMcpOperation(req: McpRequest): Promise<McpOperationResult> {
   const start = Date.now()
+  try {
+    return await runMcpOperation(req, start)
+  } catch (err: any) {
+    // Only reached for a stale reused session — retry once with a new one.
+    return await runMcpOperation(req, start)
+  }
+}
+
+async function runMcpOperation(req: McpRequest, start: number): Promise<McpOperationResult> {
   const client = new Client({ name: 'voiden', version: '1.0.0' }, { capabilities: {} })
 
   // Transparently attach a token from a completed "Authorize" flow (see
@@ -91,12 +116,17 @@ export async function executeMcpOperation(req: McpRequest): Promise<McpOperation
     if (storedTokens) headers['Authorization'] = `${storedTokens.token_type || 'Bearer'} ${storedTokens.access_token}`
   }
 
+  const authHeader = Object.entries(headers).find(([k]) => k.toLowerCase() === 'authorization')?.[1] ?? ''
+  const sessionKey = `${req.url}\n${authHeader}`
+  const reusedSessionId = sessionIds.get(sessionKey)
   const transport = new StreamableHTTPClientTransport(new URL(req.url), {
     requestInit: { headers },
+    sessionId: reusedSessionId,
   })
 
   try {
     await withTimeout(client.connect(transport), OPERATION_TIMEOUT_MS, 'MCP connect')
+    if (transport.sessionId) sessionIds.set(sessionKey, transport.sessionId)
 
     let result: any
     switch (req.operation) {
@@ -136,6 +166,10 @@ export async function executeMcpOperation(req: McpRequest): Promise<McpOperation
     // exception. Only transport/protocol-level failures land in the catch below.
     return { success: true, result, durationMs: Date.now() - start }
   } catch (err: any) {
+    if (reusedSessionId && isUnknownSessionError(err)) {
+      sessionIds.delete(sessionKey)
+      throw err
+    }
     // StreamableHTTPClientTransport throws this (err.code holding the raw
     // HTTP status) specifically when it gets a 401 with no authProvider
     // configured — which is always true here, since this executor never
