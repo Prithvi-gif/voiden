@@ -102,8 +102,9 @@ export async function executeMcpOperation(req: McpRequest): Promise<McpOperation
 async function runMcpOperation(req: McpRequest, start: number): Promise<McpOperationResult> {
   const client = new Client({ name: 'voiden', version: '1.0.0' }, { capabilities: {} })
 
-  // Transparently attach a token from a completed "Authorize" flow (see
-  // mcpAuthorize.ts) — but never here does it try to CREATE one: no
+  // Transparently attach a token from a completed "Authorize" flow (run by
+  // the voiden-mcp-client plugin's main-process part, which writes
+  // ~/.voiden/mcp-client-oauth.json) — but never here does it try to CREATE one: no
   // authProvider is passed to the transport below, so a missing/expired
   // token surfaces as the existing 401 -> authRequired path instead of
   // silently trying to pop a browser mid tool-call. A block's own explicit
