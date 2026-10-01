@@ -4,9 +4,6 @@ export { executeWebSocket } from './websocket.js'
 export { executeGrpc } from './grpc.js'
 export type { McpOperation, McpRequest, McpOperationResult } from './mcp.js'
 export { executeMcpOperation } from './mcp.js'
-export type { AuthorizeMcpServerResult } from './mcpAuthorize.js'
-export { authorizeMcpServer } from './mcpAuthorize.js'
-export { deleteAuthFor as deleteMcpClientAuth } from './mcpClientAuthStore.js'
 
 export type { SecureRequestAdapter, SecureHandoffResult, SecureHttpResult, SecureRequestResult } from './secureRequest.js'
 export { executeSecureRequest, hasHttpHeader, deleteHttpHeader, addDefaultHttpHeaders, getFileMimeType } from './secureRequest.js'
@@ -24,7 +21,7 @@ export type { HeadlessEditor, RequestBuildHandler, ResponseProcessHandler } from
 export { RequestOrchestrator, requestOrchestrator } from './orchestrator.js'
 
 export type { DeclaredBlockVersion, BlockVersionStatus, InstalledPluginInfo } from './blockVersioning.js'
-export { classifyBlockVersion } from './blockVersioning.js'
+export { classifyBlockVersion, blockVersionMismatchKind } from './blockVersioning.js'
 
 // .void file parsing — shared by @voiden/runner (execution) and the Voiden
 // app (validating externally-written files), so it lives here rather than

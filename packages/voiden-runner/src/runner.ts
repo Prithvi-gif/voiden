@@ -21,6 +21,7 @@ import { join } from 'path'
 import {
   requestOrchestrator,
   classifyBlockVersion,
+  blockVersionMismatchKind,
   parseVoidFile,
   groupBlocksIntoSections,
   resolveLinkedBlocks,
@@ -110,8 +111,16 @@ function formatVersionError(
         `  Run: voiden-runner plugin enable ${pluginId}`
       )
     case 'version-mismatch':
+      // Only an older plugin, or a newer one outside the block's
+      // compatibility range, gets here — a newer compatible one runs it.
+      if (blockVersionMismatchKind(installed?.version ?? '', pluginVersion) === 'incompatible-newer') {
+        return (
+          `Block "${blockType}" was saved with ${pluginId} v${pluginVersion}; the installed v${installed?.version} is a newer, incompatible version.\n` +
+          `  Re-save the file in the Voiden app with v${installed?.version}, or run: voiden-runner plugin install ${pluginId}@${pluginVersion}`
+        )
+      }
       return (
-        `Block "${blockType}" requires ${pluginId} v${pluginVersion}, but v${installed?.version} is installed.\n` +
+        `Block "${blockType}" requires ${pluginId} v${pluginVersion} or newer, but v${installed?.version} is installed.\n` +
         `  Run: voiden-runner plugin install ${pluginId}@${pluginVersion}`
       )
   }

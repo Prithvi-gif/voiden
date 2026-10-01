@@ -1,6 +1,27 @@
 {
   "releases": [
     {
+      "version": "2.3.1",
+      "date": "October 2026",
+      "whatsnew": [
+        {
+          "icon": "🔒",
+          "title": "Security Updates",
+          "description": "Voiden's dependencies — including Electron and the editor engine — are updated to resolve the latest security advisories."
+        },
+        {
+          "icon": "⌨️",
+          "title": "Smoother Keyboard Navigation in Menus",
+          "description": "Arrow keys and Enter now stay inside the slash menu, table cell suggestions, and variable pickers, so you can browse and pick an item without the cursor jumping elsewhere."
+        },
+        {
+          "icon": "🔗",
+          "title": "More Reliable MCP Tool Chaining",
+          "description": "Chained /mcp calls share one server session so captured values carry over, and files saved with an older compatible plugin version keep running after you update the plugin."
+        }
+      ]
+    },
+    {
       "version": "2.3.0",
       "date": "September 2026",
       "whatsnew": [

@@ -9,7 +9,7 @@ export const ResSuggestionPluginKey = new PluginKey('resSuggestion');
 
 let activePopup: Instance<Props>[] | undefined;
 
-export const isResSuggestionOpen = () => !!activePopup?.[0]?.state?.isShown;
+export const isResSuggestionOpen = () => !!activePopup?.[0]?.state?.isVisible;
 
 interface SuggestionItem {
   label: string

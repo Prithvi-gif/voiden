@@ -1,6 +1,6 @@
 {
   "name": "@voiden/mcp",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Runs .void /tool blocks as a live MCP server — discovery, verification, health checks, graceful shutdown, optional public tunnel. The actual MCP server process, not a CLI action; the `voiden` CLI's `agent` command registers a project to launch it, but never wraps or duplicates its logic.",
   "type": "module",
   "license": "MIT",
@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^20.14.10",
-    "tsx": "^4.15.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.5.3"
   }
 }

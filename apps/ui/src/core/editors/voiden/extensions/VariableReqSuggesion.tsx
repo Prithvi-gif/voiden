@@ -9,7 +9,7 @@ export const ReqSuggestionPluginKey = new PluginKey('reqSuggestion');
 
 let activePopup: Instance<Props>[] | undefined;
 
-export const isReqSuggestionOpen = () => !!activePopup?.[0]?.state?.isShown;
+export const isReqSuggestionOpen = () => !!activePopup?.[0]?.state?.isVisible;
 
 
 interface SuggestionItem {

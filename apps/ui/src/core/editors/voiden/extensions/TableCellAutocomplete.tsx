@@ -28,7 +28,7 @@ export const TableCellAutocompletePluginKey = new PluginKey(
 
 let activePopup: Instance<Props>[] | undefined;
 
-export const isTableCellAutocompleteOpen = () => !!activePopup?.[0]?.state?.isShown;
+export const isTableCellAutocompleteOpen = () => !!activePopup?.[0]?.state?.isVisible;
 
 // ─── Manual trigger (Mod-Space) ─────────────────────────────────────────────
 // The typing-triggered popup above only ever opens once there's at least one

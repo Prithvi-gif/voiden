@@ -657,6 +657,35 @@ resolves from the environment the same way any other Voiden request's env vars d
 params table never involved. Every declared *param*, by contrast, is always agent-facing — see
 ["How a param actually resolves"](#how-a-param-actually-resolves) above.
 
+**Can one tool use a value from another tool's response?**
+Yes — the same runtime variables chaining uses in the app. Tool A's request captures a value with a
+runtime-variables block (e.g. `order_id` = `{{$res.body.id}}`, or `voiden.variables.set('order_id', …)`
+in a script); tool B's request uses `{{process.order_id}}`. Any sequence works — A → B → C, several
+values at once, and calling A again overwrites the value.
+
+**How does the agent know to call A before B?**
+MCP has no built-in way to declare "this tool depends on that one", so the agent learns it from:
+
+- **B's description — write it there.** Agents read tool descriptions to decide what to call, and
+  every MCP client shows them, so this is what makes the agent call A first. Say it plainly, e.g.
+  *"Gets an order. Call `create_order` first — this uses the `order_id` it returns."* Nothing adds
+  this for you.
+- **B's error, as a fallback.** If B is called before its runtime variable is set, the call fails and
+  the result starts with a hint naming the tool that captures it:
+  *"`order_id` isn't set yet in this session. Call `create_order` first — it captures `order_id` from
+  its response."* Agents usually recover from this, but it costs a failed call — it's a safety net,
+  not a substitute for the description.
+
+A Claude skill can't carry this either: skills live in the agent's own setup, and an MCP server can't
+install one. The plugin's own skill is for AI that *authors* `/tool` blocks in Voiden, not for agents
+calling hosted tools.
+
+**Where do captured values live?** On the server, per agent session: with
+stdio each agent has its own server process; with `--http` each client gets its own session
+(`Mcp-Session-Id`), dropped when it disconnects or after an hour idle. They are never shared between
+clients, and never loaded from the app's saved `.process.env.json`. Verification runs each tool on
+its own, so a chained tool's verify row should point at a section that doesn't depend on a prior call.
+
 **Does where I host `voiden-mcp` matter to Voiden?**
 No — it's a plain npm package with no Voiden-specific hosting logic in it, the same as any other
 CLI tool (`http-server`, say). `voiden-mcp <path> --http` behaves identically on a laptop, a VM,

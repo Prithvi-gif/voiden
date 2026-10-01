@@ -43,6 +43,7 @@ export type Settings = {
   };
   updates: {
     channel: "stable" | "early-access";
+    last_run_version?: string; // app.getVersion() as of the last update check that reached voiden.md — detects a completed update (see updates.ts)
   };
   cli: {
     installed: boolean; // Whether CLI is currently installed in PATH
