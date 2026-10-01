@@ -1,5 +1,30 @@
 [
   {
+    "version": "v2.3.1",
+    "date": "01/10/2026",
+    "title": "Security Updates & Editor Keyboard Fixes",
+    "description": "Patch release with dependency security updates, more reliable MCP tool chaining, and keyboard fixes for the slash menu and suggestion popups.",
+    "icon": "Wrench",
+    "iconColor": "text-amber-400",
+    "bgColor": "bg-gradient-to-br from-slate-900 to-amber-950",
+    "changes": {
+      "Improved": [
+        "Improved update checks for better insights into app usage and successful updates.",
+        "Updated dependencies to resolve Dependabot security alerts, including Electron 39.8.10 and the Tiptap 3 editor engine.",
+        "Chained /mcp operations reuse the server's session, so a value captured by one tool reaches the next.",
+        "voiden-runner and voiden-mcp keep runtime variables per client session over --http.",
+        "MCP Authorize for /mcp blocks now ships with the voiden-mcp-client plugin, so its fixes arrive as plugin updates."
+      ],
+      "Fixed": [
+        "Blocks saved with an older compatible plugin version run again without re-saving the file.",
+        "ArrowUp in the slash menu moves through the menu instead of jumping the cursor to the previous line.",
+        "Arrow keys and Enter in table cell suggestions pick a suggestion instead of moving between cells.",
+        "Variable and file-link suggestion popups keep the cursor in place while navigating with the arrow keys.",
+        "WebSocket and gRPC blocks show their method label once (voiden-sockets-grpcs 1.1.8)."
+      ]
+    }
+  },
+  {
     "version": "v2.3.0",
     "date": "22/09/2026",
     "title": "Stable: MCP Agent Integration",
