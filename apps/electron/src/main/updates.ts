@@ -7,7 +7,7 @@ import * as semver from "semver";
 import * as https from "https";
 import { execFile } from "child_process";
 import { windowManager } from "./windowManager";
-import { saveSettings } from "./settings";
+import { getSettings, saveSettings } from "./settings";
 import { flushRendererUnsavedForPaths } from "./fileSystem";
 
 // ---------- Updater logger ----------
@@ -152,6 +152,61 @@ function showToast(type: "info" | "error" | "warning", title: string, descriptio
   }
 }
 
+// ---------- Update-check headers ----------
+//
+// Every update check to voiden.md carries the app version, OS and arch (in the
+// User-Agent), the user's channel, and whether it is the main check or the
+// cross-channel probe. voiden.md's /api/download reads these to count active
+// installs per OS/version in Voiden Insights. No ids, no content: the same
+// facts the update request already implies.
+//
+// After an update has installed and the new version is running, the first
+// main check also carries the version it updated from (X-Voiden-Updated-From),
+// once. That is the "update succeeded" signal: it can only be sent by the new
+// version, after it started.
+
+type UpdateChannel = "stable" | "early-access";
+
+// Version this install ran before the current one, when the current run is the
+// first after an upgrade; cleared once a check has delivered it.
+let updatedFrom: string | null = null;
+
+function detectCompletedUpdate() {
+  const current = app.getVersion();
+  const last = getSettings().updates?.last_run_version;
+  updatedFrom = last && semver.valid(last) && semver.valid(current) && semver.gt(current, last) ? last : null;
+  if (updatedFrom) updaterLog("INFO", `Updated from v${updatedFrom} to v${current}`);
+}
+
+function updateCheckHeaders(channel: UpdateChannel, check: "main" | "cross"): Record<string, string> {
+  const headers: Record<string, string> = {
+    "User-Agent": `Voiden/${app.getVersion()} (${process.platform}: ${process.arch})`,
+    "X-Voiden-Channel": channel,
+    "X-Voiden-Check": check,
+  };
+  if (check === "main" && updatedFrom) headers["X-Voiden-Updated-From"] = updatedFrom;
+  return headers;
+}
+
+// mainUpdateCheckDelivered runs after a main check got a response: the
+// updated-from version (if any) has been reported, so remember this version
+// and stop sending it.
+function mainUpdateCheckDelivered(channel: UpdateChannel) {
+  const current = app.getVersion();
+  updatedFrom = null;
+  if (process.platform === "darwin" || process.platform === "win32") {
+    autoUpdater.requestHeaders = updateCheckHeaders(channel, "main");
+  }
+  const settings = getSettings();
+  if (settings.updates?.last_run_version !== current) {
+    try {
+      saveSettings({ updates: { ...settings.updates, last_run_version: current } });
+    } catch (err) {
+      updaterLog("WARN", `Could not save last_run_version: ${err}`);
+    }
+  }
+}
+
 // ---------- Cross-channel update hint ----------
 
 // Tracks the last version we already toasted about so we don't spam every hour.
@@ -183,7 +238,7 @@ async function checkOtherChannelForUpdate(
     : `https://voiden.md/api/download/${otherChannelPath}/${platform}/${arch}/latest.yml`;
 
   const requestOptions = {
-    headers: { "User-Agent": `Voiden/${currentVersion} (${platform}: ${arch})` },
+    headers: updateCheckHeaders(currentChannel, "cross"),
   };
 
   return new Promise((resolve) => {
@@ -419,9 +474,7 @@ function checkForLinuxUpdate(currentVersion: string, channel: "stable" | "early-
   const latestUrl = `https://voiden.md/api/download/${channelPath}/linux/latest.json`;
 
   const requestOptions = {
-    headers: {
-      'User-Agent': `Voiden/${currentVersion} (${process.platform}: ${process.arch})`,
-    },
+    headers: updateCheckHeaders(channel, "main"),
   };
 
   setUpdateState(UpdateState.CHECKING);
@@ -431,6 +484,7 @@ function checkForLinuxUpdate(currentVersion: string, channel: "stable" | "early-
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
+        if (res.statusCode && res.statusCode < 400) mainUpdateCheckDelivered(channel);
         try {
           const latest = JSON.parse(data);
           const latestVersion = latest.version;
@@ -494,6 +548,7 @@ export function initializeUpdates(channel: "stable" | "early-access" = "stable")
   const platform = process.platform;
   const arch = process.arch;
   const currentVersion = app.getVersion();
+  detectCompletedUpdate();
 
   if (platform === "darwin" || platform === "win32") {
     // Both macOS and Windows use electron-updater natively (NSIS on Windows)
@@ -507,12 +562,14 @@ export function initializeUpdates(channel: "stable" | "early-access" = "stable")
       provider: "generic",
       url: `https://voiden.md/api/download/${channelPath}/${platform}/${arch}`,
     });
+    autoUpdater.requestHeaders = updateCheckHeaders(channel, "main");
 
     // Check for updates after app is ready, then periodically
     app.whenReady().then(() => {
       setTimeout(() => {
         clearUpdaterCache();
         autoUpdater.checkForUpdates()
+          .then(() => mainUpdateCheckDelivered(channel))
           .then(() => checkOtherChannelForUpdate(currentVersion, channel))
           .catch((err: Error) => {
             console.error("Auto update check failed:", err);
@@ -524,6 +581,7 @@ export function initializeUpdates(channel: "stable" | "early-access" = "stable")
         if (!isUpdateInProgress()) {
           clearUpdaterCache();
           autoUpdater.checkForUpdates()
+            .then(() => mainUpdateCheckDelivered(channel))
             .then(() => checkOtherChannelForUpdate(currentVersion, channel))
             .catch((err: Error) => {
               console.error("Periodic update check failed:", err);
@@ -568,9 +626,7 @@ export async function checkForUpdatesManually(channel: "stable" | "early-access"
       const latestUrl = `https://voiden.md/api/download/${channelPath}/linux/latest.json`;
 
       const requestOptions = {
-        headers: {
-          'User-Agent': `Voiden/${currentVersion} (${process.platform}: ${process.arch})`,
-        },
+        headers: updateCheckHeaders(channel, "main"),
       };
 
       https
@@ -578,6 +634,7 @@ export async function checkForUpdatesManually(channel: "stable" | "early-access"
           let data = "";
           res.on("data", (chunk) => (data += chunk));
           res.on("end", () => {
+            if (res.statusCode && res.statusCode < 400) mainUpdateCheckDelivered(channel);
             try {
               const latest = JSON.parse(data);
               const latestVersion = latest.version;
@@ -606,8 +663,10 @@ export async function checkForUpdatesManually(channel: "stable" | "early-access"
       setUpdateState(UpdateState.CHECKING);
       isManualUpdateCheck = true;
       clearUpdaterCache();
+      autoUpdater.requestHeaders = updateCheckHeaders(channel, "main");
       const result = await autoUpdater.checkForUpdates();
       isManualUpdateCheck = false;
+      mainUpdateCheckDelivered(channel);
       // With autoDownload=true, checkForUpdates() resolves as soon as the version
       // check completes, but the download has already started — update-available
       // will have moved state to DOWNLOADING. Only reset to IDLE if no download
