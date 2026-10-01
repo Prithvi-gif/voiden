@@ -1240,7 +1240,7 @@ let activeFileLinkPopup: any | undefined;
 
 // Mirrors isTableCellAutocompleteOpen/isSlashMenuOpen — lets the global
 // table-cell Enter handler know this suggestion popup owns Enter while open.
-export const isFileLinkSuggestionOpen = () => !!activeFileLinkPopup?.state?.isShown;
+export const isFileLinkSuggestionOpen = () => !!activeFileLinkPopup?.state?.isVisible;
 
 export type FileLinkOptions = {
   HTMLAttributes: Record<string, any>;

@@ -1,5 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
+import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { AlertCircle } from 'lucide-react';
 import YAML from 'yaml';
 import React from 'react';
@@ -176,6 +176,9 @@ const PlaceholderBlockView = ({ node }: any) => {
           )}
         </div>
       </div>
+      {/* Nested content is preserved, not edited — keep it mounted but hidden
+          so Tiptap 3 doesn't append it to the view as editable text. */}
+      <NodeViewContent className="hidden" />
     </NodeViewWrapper>
   );
 };

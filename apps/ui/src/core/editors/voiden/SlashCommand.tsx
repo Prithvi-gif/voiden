@@ -478,7 +478,7 @@ export const hideSlashMenu = () => {
   popup?.[0]?.hide();
 };
 
-export const isSlashMenuOpen = () => !!popup?.[0]?.state?.isShown;
+export const isSlashMenuOpen = () => !!popup?.[0]?.state?.isVisible;
 
 export const SlashCommand = Extension.create({
   name: extensionName,
@@ -724,7 +724,7 @@ export const SlashCommand = Extension.create({
                 return true;
               }
 
-              if (!popup?.[0].state.isShown) {
+              if (!popup?.[0].state.isVisible) {
                 popup?.[0].show();
               }
 
